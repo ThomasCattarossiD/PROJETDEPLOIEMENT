@@ -66,6 +66,23 @@ jobs:
           terraform validate
       #   terraform apply -auto-approve
 
+      - name: Configure GCP Credentials
+        uses: google-github-actions/setup-gcloud@v2.1.0
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+          install_components: 'beta, kubectl, gke-gcloud-auth-plugin'
+
+      - name: Deploy to GKE
+        run: |-
+          # Force PATH update
+          export PATH=$PATH:/usr/lib/google-cloud-sdk/bin
+          gcloud components update -q
+          gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION
+          kubectl apply -f infrastructure/k8s/ --validate=false
+          kubectl rollout restart deployment/backend-deployment -n default
+          kubectl rollout restart deployment/frontend-deployment -n default
+
+
       # Étape 8 : Déploiement Kubernetes
       - name: Deploy to Kubernetes
         run: |
