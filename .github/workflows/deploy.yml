@@ -1,5 +1,5 @@
 # .github/workflows/deploy.yml
-name: CD Pipeline Projet
+name: CD Pipeline
 
 on:
   push:
