@@ -1,4 +1,4 @@
-name: Deploy to GCP
+name: Deploy to GCP v18
 
 env:
   GCP_PROJECT: durable-limiter-459106-k2      # Variable GitHub (ex: 'adspex-401215')

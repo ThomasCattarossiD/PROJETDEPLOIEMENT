@@ -14,19 +14,6 @@ variable "region" {
   default     = "europe-west1"
 }
 
-# Création des repositories Artifact Registry
-resource "google_artifact_registry_repository" "frontend" {
-  location      = var.region
-  repository_id = "adspex-frontend-repo"
-  format        = "DOCKER"
-}
-
-resource "google_artifact_registry_repository" "backend" {
-  location      = var.region
-  repository_id = "adspex-backend-repo"
-  format        = "DOCKER"
-}
-
 # Cluster GKE (optionnel)
 resource "google_container_cluster" "adspex_cluster" {
   name     = "adspex-cluster"
