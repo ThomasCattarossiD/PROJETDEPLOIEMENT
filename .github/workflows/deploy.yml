@@ -34,6 +34,11 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.5
+
       # Étape 4 : Configuration Docker
       - name: Configure Docker
         run: |
@@ -57,7 +62,7 @@ jobs:
       - name: Apply Terraform
         working-directory: infrastructure
         run: |
-          terraform init -upgrade
+          terraform init
           terraform validate
           terraform apply -auto-approve
 
