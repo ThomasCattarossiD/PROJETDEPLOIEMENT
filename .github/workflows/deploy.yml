@@ -55,7 +55,7 @@ jobs:
 
       # Étape 7 : Déploiement Terraform (Infra)
       - name: Apply Terraform
-        working-directory: infra
+        working-directory: infrastructure
         run: |
           terraform init -upgrade
           terraform validate
