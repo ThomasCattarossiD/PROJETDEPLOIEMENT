@@ -1,88 +1,70 @@
-# .github/workflows/deploy.yml
-name: CD Pipeline
+name: Deploy to GCP
+
+env:
+  GCP_PROJECT: durable-limiter-459106-k2      # Variable GitHub (ex: 'adspex-401215')
+  REGION: europe-west1                        # Doit correspondre à la région GCP
+  CLUSTER_NAME: adspex-cluster
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'k8s/**'
-      - '.github/workflows/deploy.yml'
-
-env:
-  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-  GKE_CLUSTER: adtech-cluster  # À remplacer par le nom de votre cluster
-  GKE_REGION: europe-west1    # À remplacer par votre zone
-  REGISTRY: eu.gcr.io          # Container Registry regional
+    branches: [ main ]
 
 jobs:
-  setup-auth:
-    name: Configure GCP
-    runs-on: ubuntu-latest
-    steps:
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker $REGISTRY
-
-      - name: Get GKE credentials
-        run: gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION --project $GCP_PROJECT
-
   deploy:
-    needs: setup-auth
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
-      - name: Checkout code
+      # Étape 1 : Checkout du code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Generate build ID
-        id: build-id
-        run: echo "BUILD_ID=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      # Étape 2 : Authentification GCP
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          create_credentials_file: true
 
-      - name: Setup gcloud CLI
-        uses: 'google-github-actions/setup-gcloud@v1'
-  
-      - name: Configure Docker for GCR
+      # Étape 3 : Configuration GCloud SDK
+      - name: Set Up GCloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      # Étape 4 : Configuration Docker
+      - name: Configure Docker
         run: |
-          gcloud auth configure-docker eu.gcr.io --quiet
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-      # Déploiement Backend
-      - name: Build & Push Backend
-        working-directory: ./backend
+      # Étape 5 : Build & Push Frontend
+      - name: Build and Push Frontend
+        working-directory: frontend
         run: |
-          docker build -t $REGISTRY/$GCP_PROJECT/backend:${{ steps.build-id.outputs.BUILD_ID }} .
-          docker push $REGISTRY/$GCP_PROJECT/backend:${{ steps.build-id.outputs.BUILD_ID }}
+          docker build -t "${REGION}-docker.pkg.dev/$GCP_PROJECT/adspex-frontend-repo/frontend:$GITHUB_SHA" .
+          docker push "${REGION}-docker.pkg.dev/$GCP_PROJECT/adspex-frontend-repo/frontend:$GITHUB_SHA"
 
-      # Déploiement Frontend
-      - name: Build & Push Frontend
-        working-directory: ./frontend
+      # Étape 6 : Build & Push Backend
+      - name: Build and Push Backend
+        working-directory: backend
         run: |
-          docker build -t $REGISTRY/$GCP_PROJECT/frontend:${{ steps.build-id.outputs.BUILD_ID }} .
-          docker push $REGISTRY/$GCP_PROJECT/frontend:${{ steps.build-id.outputs.BUILD_ID }}
+          docker build -t "${REGION}-docker.pkg.dev/$GCP_PROJECT/adspex-backend-repo/backend:$GITHUB_SHA" .
+          docker push "${REGION}-docker.pkg.dev/$GCP_PROJECT/adspex-backend-repo/backend:$GITHUB_SHA"
 
-      # Mise à jour des déploiements Kubernetes
+      # Étape 7 : Déploiement Terraform (Infra)
+      - name: Apply Terraform
+        working-directory: infra
+        run: |
+          terraform init -upgrade
+          terraform validate
+          terraform apply -auto-approve
+
+      # Étape 8 : Déploiement Kubernetes
       - name: Deploy to Kubernetes
-        working-directory: ./k8s
         run: |
-          # Mise à jour des tags d'image dans les manifests
-          sed -i "s/latest/${{ steps.build-id.outputs.BUILD_ID }}/g" frontend-deployment.yaml
-          sed -i "s/latest/${{ steps.build-id.outputs.BUILD_ID }}/g" backend-deployment.yaml
-
-          # Application des configurations
-          kubectl apply -f namespace.yaml
-          kubectl apply -f postgres-secret.yaml
-          kubectl apply -f postgres-volume.yaml
-          kubectl apply -f postgres-deployment.yaml
-          kubectl apply -f backend-deployment.yaml
-          kubectl apply -f frontend-deployment.yaml
-          kubectl apply -f ingress.yaml
-
-          # Rolling update
-          kubectl rollout restart deployment/frontend -n adtech
-          kubectl rollout restart deployment/backend -n adtech
+          gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION
+          kubectl apply -f k8s/
+          kubectl rollout restart deployment/backend-deployment -n default
+          kubectl rollout restart deployment/frontend-deployment -n default
