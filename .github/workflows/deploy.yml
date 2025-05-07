@@ -1,0 +1,80 @@
+# .github/workflows/deploy.yml
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'k8s/**'
+
+env:
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+  GKE_CLUSTER: my-gke-cluster  # À remplacer par le nom de votre cluster
+  GKE_ZONE: europe-west1-b     # À remplacer par votre zone
+  REGISTRY: eu.gcr.io          # Container Registry regional
+
+jobs:
+  setup-auth:
+    name: Configure GCP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker $REGISTRY
+
+      - name: Get GKE credentials
+        run: gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $GCP_PROJECT
+
+  deploy:
+    needs: setup-auth
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate build ID
+        id: build-id
+        run: echo "BUILD_ID=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # Déploiement Backend
+      - name: Build & Push Backend
+        working-directory: ./backend
+        run: |
+          docker build -t $REGISTRY/$GCP_PROJECT/backend:${{ steps.build-id.outputs.BUILD_ID }} .
+          docker push $REGISTRY/$GCP_PROJECT/backend:${{ steps.build-id.outputs.BUILD_ID }}
+
+      # Déploiement Frontend
+      - name: Build & Push Frontend
+        working-directory: ./frontend
+        run: |
+          docker build -t $REGISTRY/$GCP_PROJECT/frontend:${{ steps.build-id.outputs.BUILD_ID }} .
+          docker push $REGISTRY/$GCP_PROJECT/frontend:${{ steps.build-id.outputs.BUILD_ID }}
+
+      # Mise à jour des déploiements Kubernetes
+      - name: Deploy to Kubernetes
+        working-directory: ./k8s
+        run: |
+          # Mise à jour des tags d'image dans les manifests
+          sed -i "s/latest/${{ steps.build-id.outputs.BUILD_ID }}/g" frontend-deployment.yaml
+          sed -i "s/latest/${{ steps.build-id.outputs.BUILD_ID }}/g" backend-deployment.yaml
+
+          # Application des configurations
+          kubectl apply -f namespace.yaml
+          kubectl apply -f postgres-secret.yaml
+          kubectl apply -f postgres-volume.yaml
+          kubectl apply -f postgres-deployment.yaml
+          kubectl apply -f backend-deployment.yaml
+          kubectl apply -f frontend-deployment.yaml
+          kubectl apply -f ingress.yaml
+
+          # Rolling update
+          kubectl rollout restart deployment/frontend -n adtech
+          kubectl rollout restart deployment/backend -n adtech
