@@ -53,7 +53,7 @@ resource "google_compute_firewall" "allow-ssh" {
 
 # Cluster GKE en mode Autopilot (managed)
 resource "google_container_cluster" "main" {
-  name        = "adtech-cluster"
+  name        = "my-gke-cluster"
   location    = "europe-west1"  # Région uniquement
   node_locations = ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
 
@@ -83,6 +83,15 @@ resource "google_container_cluster" "main" {
   # Protection contre la suppression accidentelle
   deletion_protection = true
 }
+
+resource "google_project_service" "gcp_services" {
+  for_each = toset([
+    "container.googleapis.com",
+    "compute.googleapis.com"
+  ])
+  service = each.key
+}
+
 
 # Variables
 variable "project_id" {
