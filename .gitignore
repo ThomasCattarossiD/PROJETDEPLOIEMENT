@@ -1,0 +1,74 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Dossiers d'éditeurs
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp*
+.pnpm-store/
+
+# Environnements
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.terraform/**
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraformrc
+terraform.rc
+crash.log
+
+# Terraform
+**/.terraform/*
+!.terraform/modules
+.terraform.lock.hcl
+
+
+# Docker
+docker-compose.override.yml
+**/docker-compose*.yml
+
+# Builds
+dist/
+build/
+**/coverage/
+**/.next/
+
+# IDE
+.settings/
+.localhistory/
+
+# React
+.eslintcache
+*.log
+logs/
+
+# Kubernetes secrets
+**/k8s/*-secret.yaml
+
+# Autres
+.cache
+*.bak
+*.tmp
+*.temp
+.ssl/
