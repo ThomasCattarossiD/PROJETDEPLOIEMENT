@@ -64,7 +64,7 @@ jobs:
         run: |
           terraform init
           terraform validate
-          terraform apply -auto-approve
+      #   terraform apply -auto-approve
 
       # Étape 8 : Déploiement Kubernetes
       - name: Deploy to Kubernetes
