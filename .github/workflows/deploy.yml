@@ -48,9 +48,9 @@ jobs:
       - name: Setup gcloud CLI
         uses: 'google-github-actions/setup-gcloud@v1'
   
-      - name: Configure Docker
+      - name: Configure Docker for GCR
         run: |
-            gcloud auth configure-docker --quiet
+          gcloud auth configure-docker eu.gcr.io --quiet
 
       # Déploiement Backend
       - name: Build & Push Backend
