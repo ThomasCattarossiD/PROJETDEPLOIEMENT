@@ -4,7 +4,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.4.0"
+      version = "~> 6.34.0"
     }
   }
 }
@@ -53,8 +53,9 @@ resource "google_compute_firewall" "allow-ssh" {
 
 # Cluster GKE en mode Autopilot (managed)
 resource "google_container_cluster" "main" {
-  name     = "adtech-cluster"
-  location = var.zone
+  name        = "adtech-cluster"
+  location    = "europe-west1"  # Région uniquement
+  node_locations = ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
 
   # Configuration réseau avancée
   network    = google_compute_network.vpc.name
@@ -68,15 +69,6 @@ resource "google_container_cluster" "main" {
 
   # Activation de Autopilot (recommandé)
   enable_autopilot = true
-
-  # Maintenance window quotidienne
-  maintenance_policy {
-    recurring_window {
-      start_time = "03:00"
-      end_time   = "05:00"
-      recurrence = "FREQ=DAILY"
-    }
-  }
 
   # Canal de release stable avec mises à jour auto
   release_channel {
@@ -96,7 +88,6 @@ resource "google_container_cluster" "main" {
 variable "project_id" {
   description = "ID du projet GCP"
   type        = string
-  default     = "durable-limiter-459106-k2"
 }
 
 variable "region" {
@@ -105,11 +96,6 @@ variable "region" {
   default     = "europe-west1"
 }
 
-variable "zone" {
-  description = "Zone GCP (ex: europe-west1-b)"
-  type        = string
-  default     = "europe-west1-b"
-}
 
 # Outputs
 output "cluster_name" {
