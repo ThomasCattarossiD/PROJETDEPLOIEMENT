@@ -8,6 +8,7 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - 'k8s/**'
+      - '.github/workflows/deploy.yml'
 
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
