@@ -12,7 +12,7 @@ on:
 
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-  GKE_CLUSTER: my-gke-cluster  # À remplacer par le nom de votre cluster
+  GKE_CLUSTER: adtech-cluster  # À remplacer par le nom de votre cluster
   GKE_REGION: europe-west1    # À remplacer par votre zone
   REGISTRY: eu.gcr.io          # Container Registry regional
 

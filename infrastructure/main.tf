@@ -53,7 +53,7 @@ resource "google_compute_firewall" "allow-ssh" {
 
 # Cluster GKE en mode Autopilot (managed)
 resource "google_container_cluster" "main" {
-  name        = "my-gke-cluster"
+  name        = "adtech-cluster"
   location    = "europe-west1"  # Région uniquement
   node_locations = ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
 
