@@ -45,11 +45,6 @@ jobs:
         id: build-id
         run: echo "BUILD_ID=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Authenticate Docker to GCR
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}  # Clé de service account JSON
-
       - name: Setup gcloud CLI
         uses: 'google-github-actions/setup-gcloud@v1'
   
